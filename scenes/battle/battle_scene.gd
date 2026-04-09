@@ -2,18 +2,20 @@ extends Control
 
 enum Phase { DICE_ROLL, PLAYER_PICK_TARGET, PLAYER_PICK_MOVE, ENEMY_ATTACKS, DONE }
 
-const COMBATANT_SCENE = preload("res://scenes/battle/components/combatant_display.tscn")
+const COMBATANT_SCENE  = preload("res://scenes/battle/components/combatant_display.tscn")
+const PAUSE_MENU_SCENE = preload("res://scenes/pause/pause_menu.tscn")
 
 @onready var player_display: CombatantDisplay = $Layout/TopRow/PlayerDisplay
-@onready var dice_label: Label = $Layout/TopRow/DiceLabel
-@onready var enemies_area: HBoxContainer = $Layout/EnemiesArea
-@onready var status_label: Label = $Layout/StatusLabel
-@onready var target_selector: HBoxContainer = $Layout/TargetSelector
-@onready var move_selector: MoveSelector = $Layout/MoveSelector
-@onready var battle_log: RichTextLabel = $Layout/BattleLog
-@onready var result_overlay: Panel = $ResultOverlay
-@onready var result_label: Label = $ResultOverlay/Content/ResultLabel
-@onready var continue_button: Button = $ResultOverlay/Content/ContinueButton
+@onready var dice_label: Label                = $Layout/TopRow/DiceLabel
+@onready var pause_button: Button             = $Layout/TopRow/PauseButton
+@onready var enemies_area: HBoxContainer      = $Layout/EnemiesArea
+@onready var status_label: Label              = $Layout/StatusLabel
+@onready var target_selector: HBoxContainer   = $Layout/TargetSelector
+@onready var move_selector: MoveSelector      = $Layout/MoveSelector
+@onready var battle_log: RichTextLabel        = $Layout/BattleLog
+@onready var result_overlay: Panel            = $ResultOverlay
+@onready var result_label: Label              = $ResultOverlay/Content/ResultLabel
+@onready var continue_button: Button          = $ResultOverlay/Content/ContinueButton
 
 var _player_hp: int = 0
 var _enemy_hps: Array[int] = []
@@ -26,16 +28,22 @@ var _enemy_attack_queue: Array[int] = []
 var _battle_won: bool = false
 
 var skill_handler: SkillEffectHandler
+var _pause_menu: PauseMenu
 
 func _ready() -> void:
-	# Skill handler — instantiated in code so the .tscn stays clean
+	# Skill handler
 	skill_handler = SkillEffectHandler.new()
 	add_child(skill_handler)
 	skill_handler.initialize(RunState.active_skills)
 	skill_handler.skill_triggered.connect(_on_skill_triggered)
 
+	# Pause menu
+	_pause_menu = PAUSE_MENU_SCENE.instantiate()
+	add_child(_pause_menu)
+	pause_button.pressed.connect(_on_pause_button_pressed)
+
 	_player_hp = RunState.current_hp
-	player_display.setup("You", _player_hp, _player_hp)
+	player_display.setup("You", _player_hp, RunState.max_hp)
 
 	for enemy in RunState.current_enemies:
 		_enemy_hps.append(enemy.max_hp)
@@ -53,28 +61,54 @@ func _ready() -> void:
 	_log("[color=cyan]Battle begins![/color]")
 	for enemy in RunState.current_enemies:
 		_log("  [color=yellow]%s[/color] — %s" % [enemy.display_name, enemy.description])
+		for mod in enemy.modifiers:
+			_log("    %s [color=orange][b]%s[/b][/color]: %s" % [
+				mod.icon, mod.display_name, mod.description])
 	if not RunState.active_skills.is_empty():
 		_log("")
 		_log("[color=purple]Active skills:[/color]")
 		for skill in RunState.active_skills:
 			_log("  ✦ [b]%s[/b] — %s" % [skill.display_name, skill.description])
 	_log("")
+
+	# Fire on_battle_start before the first dice roll (sets up barrier etc.)
+	skill_handler.on_battle_start()
+
 	await get_tree().create_timer(0.5).timeout
 	_do_dice_roll()
+
+# ─── Pause ───────────────────────────────────────────────────────────────────
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		if _pause_menu.visible:
+			_pause_menu.close()
+		elif _current_phase != Phase.DONE:
+			_on_pause_button_pressed()
+
+func _on_pause_button_pressed() -> void:
+	_pause_menu.open(skill_handler.get_stats_snapshot(_player_hp))
 
 # ─── Turn Order ──────────────────────────────────────────────────────────────
 
 func _do_dice_roll() -> void:
 	_current_phase = Phase.DICE_ROLL
-	var p_roll := randi_range(1, 6)
-	var e_roll := randi_range(1, 6)
-	while p_roll == e_roll:
-		p_roll = randi_range(1, 6)
-		e_roll = randi_range(1, 6)
-	_player_goes_first = p_roll > e_roll
-	dice_label.text = "🎲 You %d  |  Enemy %d" % [p_roll, e_roll]
-	var who := "You go first!" if _player_goes_first else "Enemies go first!"
-	_log("[color=yellow]🎲 Dice: %d vs %d — %s[/color]" % [p_roll, e_roll, who])
+
+	# Gambler's Favor bypasses the dice roll entirely
+	if skill_handler.should_player_go_first():
+		_player_goes_first = true
+		_log("[color=yellow]🎲 [lb]Gambler's Favor[rb] You always act first![/color]")
+	else:
+		var p_roll := randi_range(1, 6)
+		var e_roll := randi_range(1, 6)
+		while p_roll == e_roll:
+			p_roll = randi_range(1, 6)
+			e_roll = randi_range(1, 6)
+		_player_goes_first = p_roll > e_roll
+		dice_label.text = "🎲 You %d  |  Enemy %d" % [p_roll, e_roll]
+		var who := "You go first!" if _player_goes_first else "Enemies go first!"
+		_log("[color=yellow]🎲 Dice: %d vs %d — %s[/color]" % [p_roll, e_roll, who])
+
 	await get_tree().create_timer(0.7).timeout
 	dice_label.text = ""
 	if _player_goes_first:
@@ -110,7 +144,6 @@ func _on_target_chosen(enemy_idx: int) -> void:
 	_current_target_idx = enemy_idx
 	_current_phase = Phase.PLAYER_PICK_MOVE
 
-	# ── Skill hook: on_exchange_start ──
 	skill_handler.on_exchange_start()
 
 	var enemy_name := RunState.current_enemies[enemy_idx].display_name
@@ -142,7 +175,6 @@ func _process_next_enemy_attack() -> void:
 	var enemy := RunState.current_enemies[_current_attacker_idx]
 	_current_phase = Phase.ENEMY_ATTACKS
 
-	# ── Skill hook: on_exchange_start ──
 	skill_handler.on_exchange_start()
 
 	if skill_handler.force_win_this_exchange:
@@ -156,10 +188,8 @@ func _process_next_enemy_attack() -> void:
 func _on_move_chosen(move: int) -> void:
 	move_selector.disable()
 	match _current_phase:
-		Phase.PLAYER_PICK_MOVE:
-			_resolve_player_attack(move)
-		Phase.ENEMY_ATTACKS:
-			_resolve_player_defense(move)
+		Phase.PLAYER_PICK_MOVE:  _resolve_player_attack(move)
+		Phase.ENEMY_ATTACKS:     _resolve_player_defense(move)
 
 func _resolve_player_attack(player_move: int) -> void:
 	var enemy_idx := _current_target_idx
@@ -172,25 +202,75 @@ func _resolve_player_attack(player_move: int) -> void:
 
 	_log_exchange("You", player_move, enemy.display_name, enemy_move)
 	if skill_handler.force_win_this_exchange:
-		_log("  ✨ [color=purple][Blade Dance][/color] Exchange auto-won!")
+		_log("  ✨ [color=purple][lb]Blade Dance[rb][/color] Exchange auto-won!")
+	else:
+		outcome = skill_handler.modify_player_outcome(player_move, outcome)
 
 	match outcome:
 		RPS.Outcome.WIN:
-			# ── Skill hook: modify attack damage ──
 			var dmg := skill_handler.modify_attack_damage(RunState.player_base_damage, player_move)
+
+			# Armor: reduce damage dealt to this enemy
+			for mod in enemy.modifiers:
+				if mod.type == "armor":
+					var before := dmg
+					dmg = maxi(1, dmg - mod.value)
+					_log("  → %s [color=orange]%s:[/color] Damage reduced by %d." % [
+						mod.icon, mod.display_name, before - dmg])
+
 			_enemy_hps[enemy_idx] = maxi(0, _enemy_hps[enemy_idx] - dmg)
 			_enemy_displays[enemy_idx].update_hp(_enemy_hps[enemy_idx])
 			_log("  → [color=green]Hit![/color] %s takes %d damage." % [enemy.display_name, dmg])
+
+			# Thorns: player takes damage for hitting this enemy
+			for mod in enemy.modifiers:
+				if mod.type == "thorns":
+					_player_hp = maxi(0, _player_hp - mod.value)
+					player_display.update_hp(_player_hp)
+					_log("  → %s [color=orange]%s:[/color] You take %d reflected damage!" % [
+						mod.icon, mod.display_name, mod.value])
+					var _thorns_heal := skill_handler.on_player_hp_changed(_player_hp, RunState.max_hp)
+					if _thorns_heal > 0:
+						_player_hp = mini(_player_hp + _thorns_heal, RunState.max_hp)
+						player_display.update_hp(_player_hp)
+
 			if _enemy_hps[enemy_idx] == 0:
 				_log("  → [color=green]%s is defeated![/color]" % enemy.display_name)
+
+				# Predator: heal on kill
+				var heal := skill_handler.on_enemy_defeated()
+				if heal > 0:
+					_player_hp = mini(_player_hp + heal, RunState.max_hp)
+					player_display.update_hp(_player_hp)
+					_log("  → [color=green]+%d HP[/color] (Predator)" % heal)
+
+				# Parting Blow: splash to a random living enemy
+				var splash := skill_handler.get_parting_blow_damage()
+				if splash > 0:
+					var living := _get_living_enemy_indices()
+					if not living.is_empty():
+						var splash_idx: int = living.pick_random()
+						_enemy_hps[splash_idx] = maxi(0, _enemy_hps[splash_idx] - splash)
+						_enemy_displays[splash_idx].update_hp(_enemy_hps[splash_idx])
+						_log("  → Splash hits [b]%s[/b] for %d!" % [
+							RunState.current_enemies[splash_idx].display_name, splash])
+						if _enemy_hps[splash_idx] == 0:
+							_log("  → [color=green]%s is defeated![/color]" % \
+								RunState.current_enemies[splash_idx].display_name)
+
 			skill_handler.on_player_wins_exchange(true)
+
 		RPS.Outcome.LOSS:
-			# ── Skill hook: modify damage taken ──
 			var dmg := skill_handler.modify_damage_taken(enemy.base_damage)
 			_player_hp = maxi(0, _player_hp - dmg)
 			player_display.update_hp(_player_hp)
 			_log("  → [color=red]%s counters![/color] You take %d damage." % [enemy.display_name, dmg])
 			skill_handler.on_player_loses_exchange(true)
+			var _atk_heal := skill_handler.on_player_hp_changed(_player_hp, RunState.max_hp)
+			if _atk_heal > 0:
+				_player_hp = mini(_player_hp + _atk_heal, RunState.max_hp)
+				player_display.update_hp(_player_hp)
+
 		RPS.Outcome.TIE:
 			_log("  → [color=yellow]Tie![/color] No damage.")
 			skill_handler.on_tie_exchange()
@@ -198,6 +278,15 @@ func _resolve_player_attack(player_move: int) -> void:
 	await get_tree().create_timer(0.7).timeout
 	if _check_battle_over():
 		return
+
+	# Echo Strike: repeat the same attack before handing to enemies
+	var should_echo := skill_handler.should_repeat_attack
+	skill_handler.should_repeat_attack = false
+	if should_echo:
+		_log("")
+		await _resolve_player_attack(player_move)
+		return
+
 	_begin_enemy_attack_phase()
 
 func _resolve_player_defense(defense_move: int) -> void:
@@ -211,19 +300,46 @@ func _resolve_player_defense(defense_move: int) -> void:
 
 	_log_exchange("You (defense)", defense_move, enemy.display_name, enemy_move)
 	if skill_handler.force_win_this_exchange:
-		_log("  ✨ [color=purple][Blade Dance][/color] Exchange auto-blocked!")
+		_log("  ✨ [color=purple][lb]Blade Dance[rb][/color] Exchange auto-blocked!")
+	else:
+		outcome = skill_handler.modify_player_outcome(defense_move, outcome)
 
 	match outcome:
 		RPS.Outcome.WIN:
 			_log("  → [color=green]Blocked![/color] You deflect %s's attack." % enemy.display_name)
 			skill_handler.on_player_wins_exchange(false)
+
 		RPS.Outcome.LOSS:
-			# ── Skill hook: modify damage taken ──
 			var dmg := skill_handler.modify_damage_taken(enemy.base_damage)
 			_player_hp = maxi(0, _player_hp - dmg)
 			player_display.update_hp(_player_hp)
 			_log("  → [color=red]Hit![/color] %s deals %d damage." % [enemy.display_name, dmg])
 			skill_handler.on_player_loses_exchange(false)
+			var _def_heal := skill_handler.on_player_hp_changed(_player_hp, RunState.max_hp)
+			if _def_heal > 0:
+				_player_hp = mini(_player_hp + _def_heal, RunState.max_hp)
+				player_display.update_hp(_player_hp)
+
+			# Eye for an Eye: deal counter-damage back to attacker
+			var counter := skill_handler.get_counter_damage(enemy.base_damage)
+			if counter > 0:
+				_enemy_hps[enemy_idx] = maxi(0, _enemy_hps[enemy_idx] - counter)
+				_enemy_displays[enemy_idx].update_hp(_enemy_hps[enemy_idx])
+				_log("  → [color=yellow]Counter![/color] %s takes %d damage." % [enemy.display_name, counter])
+				if _enemy_hps[enemy_idx] == 0:
+					_log("  → [color=green]%s is defeated![/color]" % enemy.display_name)
+
+			# Regeneration: enemy heals when it successfully lands a hit
+			for mod in enemy.modifiers:
+				if mod.type == "regeneration":
+					var old_hp := _enemy_hps[enemy_idx]
+					_enemy_hps[enemy_idx] = mini(old_hp + mod.value, enemy.max_hp)
+					var healed := _enemy_hps[enemy_idx] - old_hp
+					if healed > 0:
+						_enemy_displays[enemy_idx].update_hp(_enemy_hps[enemy_idx])
+						_log("  → %s [color=orange]%s:[/color] %s heals %d HP!" % [
+							mod.icon, mod.display_name, enemy.display_name, healed])
+
 		RPS.Outcome.TIE:
 			_log("  → [color=yellow]Tie![/color] No damage.")
 			skill_handler.on_tie_exchange()
@@ -248,11 +364,28 @@ func _choose_enemy_move(enemy: EnemyData) -> int:
 			if RunState.player_move_history.is_empty():
 				return RPS.Move.values().pick_random()
 			return RunState.player_move_history[-1]
+		5:  # Schemer — 50% mirror, 30% counter-last, 20% random
+			if RunState.player_move_history.is_empty():
+				return RPS.Move.values().pick_random()
+			var last_move: int = RunState.player_move_history[-1]
+			var r := randf()
+			if r < 0.50:
+				return last_move  # mirror: copy what the player just played
+			elif r < 0.80:
+				# counter: play the move that beats the player's last move
+				for move: int in RPS.BEATS:
+					if RPS.BEATS[move] == last_move:
+						return move
+				return RPS.Move.values().pick_random()
+			else:
+				return RPS.Move.values().pick_random()
 	return RPS.Move.values().pick_random()
 
 func _weighted_random(weights: Dictionary) -> int:
 	var keys: Array[String] = ["rock", "paper", "scissors"]
-	var move_map: Dictionary = {"rock": RPS.Move.ROCK, "paper": RPS.Move.PAPER, "scissors": RPS.Move.SCISSORS}
+	var move_map: Dictionary = {
+		"rock": RPS.Move.ROCK, "paper": RPS.Move.PAPER, "scissors": RPS.Move.SCISSORS
+	}
 	var total := 0.0
 	for k: String in keys:
 		total += weights.get(k, 0.333)
@@ -293,6 +426,12 @@ func _get_living_enemy_indices() -> Array[int]:
 
 func _check_battle_over() -> bool:
 	if _player_hp <= 0:
+		# Give Undying Will a chance to save the player before ending the battle.
+		var saved_hp := skill_handler.try_death_save()
+		if saved_hp > 0:
+			_player_hp = saved_hp
+			player_display.update_hp(_player_hp)
+			return false
 		_end_battle(false)
 		return true
 	if _get_living_enemy_indices().is_empty():

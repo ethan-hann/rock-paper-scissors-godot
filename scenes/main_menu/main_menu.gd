@@ -8,7 +8,7 @@ func _ready() -> void:
 	quit_button.pressed.connect(_on_quit_pressed)
 
 func _on_start_pressed() -> void:
-	GameManager.start_new_run()
+	GameManager.go_to_save_slot()
 
 func _on_quit_pressed() -> void:
 	get_tree().quit()

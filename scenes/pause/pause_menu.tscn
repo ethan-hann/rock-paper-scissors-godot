@@ -1,0 +1,84 @@
+[gd_scene load_steps=2 format=3 uid="uid://p4us3m3nu01"]
+
+[ext_resource type="Script" path="res://scenes/pause/pause_menu.gd" id="1_pmenu"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+layer = 10
+process_mode = 3
+script = ExtResource("1_pmenu")
+
+[node name="Overlay" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.72)
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -230.0
+offset_top = -290.0
+offset_right = 230.0
+offset_bottom = 290.0
+
+[node name="Content" type="VBoxContainer" parent="Panel"]
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="Panel/Content"]
+text = "⏸  Paused"
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+
+[node name="HSep1" type="HSeparator" parent="Panel/Content"]
+
+[node name="StatsTitle" type="Label" parent="Panel/Content"]
+text = "Current Stats"
+theme_override_font_sizes/font_size = 13
+
+[node name="HPLabel" type="Label" parent="Panel/Content"]
+text = "HP:  -- / --"
+
+[node name="BarrierLabel" type="Label" parent="Panel/Content"]
+text = "Barrier:  0 HP"
+visible = false
+
+[node name="DmgRockLabel" type="Label" parent="Panel/Content"]
+text = "✊ Rock:      -- dmg"
+
+[node name="DmgPaperLabel" type="Label" parent="Panel/Content"]
+text = "✋ Paper:     -- dmg"
+
+[node name="DmgScissorsLabel" type="Label" parent="Panel/Content"]
+text = "✌ Scissors:  -- dmg"
+
+[node name="ReductionLabel" type="Label" parent="Panel/Content"]
+text = ""
+visible = false
+
+[node name="HSep2" type="HSeparator" parent="Panel/Content"]
+
+[node name="SkillsTitle" type="Label" parent="Panel/Content"]
+text = "Active Skills"
+theme_override_font_sizes/font_size = 13
+
+[node name="SkillsList" type="VBoxContainer" parent="Panel/Content"]
+theme_override_constants/separation = 3
+
+[node name="HSep3" type="HSeparator" parent="Panel/Content"]
+
+[node name="ResumeButton" type="Button" parent="Panel/Content"]
+text = "Resume"
+custom_minimum_size = Vector2(0, 36)
+
+[node name="HSep4" type="HSeparator" parent="Panel/Content"]
+
+[node name="MainMenuNote" type="Label" parent="Panel/Content"]
+text = "Current battle will be discarded."
+theme_override_font_sizes/font_size = 11
+horizontal_alignment = 1
+modulate = Color(0.6, 0.6, 0.6, 1)
+
+[node name="MainMenuButton" type="Button" parent="Panel/Content"]
+text = "↩  Return to Main Menu"
+custom_minimum_size = Vector2(0, 36)

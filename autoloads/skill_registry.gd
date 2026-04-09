@@ -26,6 +26,8 @@ func _load_from_json() -> void:
 		skill.effect_key      = entry.get("effect_key", "")
 		skill.parameters      = entry.get("parameters", {})
 		skill.locked_by_default = entry.get("locked_by_default", false)
+		skill.stackable         = entry.get("stackable", true)
+		skill.max_stacks        = entry.get("max_stacks", 1)
 		_all_skills[skill.id] = skill
 
 func get_skill(id: String) -> SkillData:

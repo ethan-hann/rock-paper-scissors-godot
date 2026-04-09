@@ -26,7 +26,7 @@ func _register_enemies() -> void:
 	knight.base_damage = 6
 	knight.rounds_to_win = 2
 	knight.ai_type = 1  # Weighted
-	knight.ai_weights = {"rock": 0.65, "paper": 0.15, "scissors": 0.20}
+	knight.ai_weights = {"rock": 0.82, "paper": 0.06, "scissors": 0.12}
 	knight.gold_reward = 20
 	knight.skill_reward_count = 3
 	_enemies[knight.id] = knight
@@ -34,11 +34,11 @@ func _register_enemies() -> void:
 	var trickster := EnemyData.new()
 	trickster.id = "shadow_trickster"
 	trickster.display_name = "Shadow Trickster"
-	trickster.description = "A cunning rogue who copies your last move."
+	trickster.description = "A cunning rogue who mirrors your moves — or turns them against you. You can never be sure which."
 	trickster.max_hp = 25
 	trickster.base_damage = 5
 	trickster.rounds_to_win = 2
-	trickster.ai_type = 4  # Mirror
+	trickster.ai_type = 5  # Schemer
 	trickster.gold_reward = 15
 	trickster.skill_reward_count = 3
 	_enemies[trickster.id] = trickster
