@@ -28,3 +28,9 @@ func reset_for_new_run() -> void:
 
 func reset_battle_state() -> void:
 	player_move_history = []
+
+func has_skill(id: String) -> bool:
+	for skill in active_skills:
+		if skill.id == id:
+			return true
+	return false

@@ -25,7 +25,15 @@ var _current_attacker_idx: int = -1
 var _enemy_attack_queue: Array[int] = []
 var _battle_won: bool = false
 
+var skill_handler: SkillEffectHandler
+
 func _ready() -> void:
+	# Skill handler — instantiated in code so the .tscn stays clean
+	skill_handler = SkillEffectHandler.new()
+	add_child(skill_handler)
+	skill_handler.initialize(RunState.active_skills)
+	skill_handler.skill_triggered.connect(_on_skill_triggered)
+
 	_player_hp = RunState.current_hp
 	player_display.setup("You", _player_hp, _player_hp)
 
@@ -45,6 +53,11 @@ func _ready() -> void:
 	_log("[color=cyan]Battle begins![/color]")
 	for enemy in RunState.current_enemies:
 		_log("  [color=yellow]%s[/color] — %s" % [enemy.display_name, enemy.description])
+	if not RunState.active_skills.is_empty():
+		_log("")
+		_log("[color=purple]Active skills:[/color]")
+		for skill in RunState.active_skills:
+			_log("  ✦ [b]%s[/b] — %s" % [skill.display_name, skill.description])
 	_log("")
 	await get_tree().create_timer(0.5).timeout
 	_do_dice_roll()
@@ -61,7 +74,7 @@ func _do_dice_roll() -> void:
 	_player_goes_first = p_roll > e_roll
 	dice_label.text = "🎲 You %d  |  Enemy %d" % [p_roll, e_roll]
 	var who := "You go first!" if _player_goes_first else "Enemies go first!"
-	_log("[color=yellow]🎲 Dice roll: %d vs %d — %s[/color]" % [p_roll, e_roll, who])
+	_log("[color=yellow]🎲 Dice: %d vs %d — %s[/color]" % [p_roll, e_roll, who])
 	await get_tree().create_timer(0.7).timeout
 	dice_label.text = ""
 	if _player_goes_first:
@@ -73,7 +86,6 @@ func _do_dice_roll() -> void:
 
 func _begin_player_attack_phase() -> void:
 	_current_phase = Phase.PLAYER_PICK_TARGET
-	# Auto-select if only one enemy is alive
 	var living := _get_living_enemy_indices()
 	if living.size() == 1:
 		_on_target_chosen(living[0])
@@ -97,7 +109,15 @@ func _on_target_chosen(enemy_idx: int) -> void:
 	target_selector.visible = false
 	_current_target_idx = enemy_idx
 	_current_phase = Phase.PLAYER_PICK_MOVE
-	status_label.text = "Attacking %s — Choose your move!" % RunState.current_enemies[enemy_idx].display_name
+
+	# ── Skill hook: on_exchange_start ──
+	skill_handler.on_exchange_start()
+
+	var enemy_name := RunState.current_enemies[enemy_idx].display_name
+	if skill_handler.force_win_this_exchange:
+		status_label.text = "✨ Attacking %s [Blade Dance — auto-win!]" % enemy_name
+	else:
+		status_label.text = "Attacking %s — Choose your move!" % enemy_name
 	move_selector.enable()
 
 # ─── Enemy Turn ───────────────────────────────────────────────────────────────
@@ -105,7 +125,7 @@ func _on_target_chosen(enemy_idx: int) -> void:
 func _begin_enemy_attack_phase() -> void:
 	_enemy_attack_queue = _get_living_enemy_indices()
 	if not _player_goes_first:
-		_enemy_attack_queue.shuffle()  # Random order when enemies go first
+		_enemy_attack_queue.shuffle()
 	_process_next_enemy_attack()
 
 func _process_next_enemy_attack() -> void:
@@ -113,15 +133,22 @@ func _process_next_enemy_attack() -> void:
 		_log("")
 		await get_tree().create_timer(0.4).timeout
 		if _player_goes_first:
-			_do_dice_roll()   # Round over; new dice roll
+			_do_dice_roll()
 		else:
-			_begin_player_attack_phase()  # Enemies attacked first; player's turn now
+			_begin_player_attack_phase()
 		return
 
 	_current_attacker_idx = _enemy_attack_queue.pop_front()
 	var enemy := RunState.current_enemies[_current_attacker_idx]
 	_current_phase = Phase.ENEMY_ATTACKS
-	status_label.text = "%s attacks! Choose your defense:" % enemy.display_name
+
+	# ── Skill hook: on_exchange_start ──
+	skill_handler.on_exchange_start()
+
+	if skill_handler.force_win_this_exchange:
+		status_label.text = "✨ %s attacks! [Blade Dance — auto-block!]" % enemy.display_name
+	else:
+		status_label.text = "%s attacks! Choose your defense:" % enemy.display_name
 	move_selector.enable()
 
 # ─── Move Resolution ─────────────────────────────────────────────────────────
@@ -138,26 +165,35 @@ func _resolve_player_attack(player_move: int) -> void:
 	var enemy_idx := _current_target_idx
 	var enemy := RunState.current_enemies[enemy_idx]
 	var enemy_move := _choose_enemy_move(enemy)
-	var outcome := RPS.resolve(player_move, enemy_move)
+	RunState.player_move_history.append(player_move)
+
+	var outcome := RPS.Outcome.WIN if skill_handler.force_win_this_exchange \
+		else RPS.resolve(player_move, enemy_move)
 
 	_log_exchange("You", player_move, enemy.display_name, enemy_move)
-	RunState.player_move_history.append(player_move)
+	if skill_handler.force_win_this_exchange:
+		_log("  ✨ [color=purple][Blade Dance][/color] Exchange auto-won!")
 
 	match outcome:
 		RPS.Outcome.WIN:
-			var dmg := RunState.player_base_damage
+			# ── Skill hook: modify attack damage ──
+			var dmg := skill_handler.modify_attack_damage(RunState.player_base_damage, player_move)
 			_enemy_hps[enemy_idx] = maxi(0, _enemy_hps[enemy_idx] - dmg)
 			_enemy_displays[enemy_idx].update_hp(_enemy_hps[enemy_idx])
 			_log("  → [color=green]Hit![/color] %s takes %d damage." % [enemy.display_name, dmg])
 			if _enemy_hps[enemy_idx] == 0:
 				_log("  → [color=green]%s is defeated![/color]" % enemy.display_name)
+			skill_handler.on_player_wins_exchange(true)
 		RPS.Outcome.LOSS:
-			var dmg := enemy.base_damage
+			# ── Skill hook: modify damage taken ──
+			var dmg := skill_handler.modify_damage_taken(enemy.base_damage)
 			_player_hp = maxi(0, _player_hp - dmg)
 			player_display.update_hp(_player_hp)
 			_log("  → [color=red]%s counters![/color] You take %d damage." % [enemy.display_name, dmg])
+			skill_handler.on_player_loses_exchange(true)
 		RPS.Outcome.TIE:
 			_log("  → [color=yellow]Tie![/color] No damage.")
+			skill_handler.on_tie_exchange()
 
 	await get_tree().create_timer(0.7).timeout
 	if _check_battle_over():
@@ -168,21 +204,29 @@ func _resolve_player_defense(defense_move: int) -> void:
 	var enemy_idx := _current_attacker_idx
 	var enemy := RunState.current_enemies[enemy_idx]
 	var enemy_move := _choose_enemy_move(enemy)
-	var outcome := RPS.resolve(defense_move, enemy_move)
+	RunState.player_move_history.append(defense_move)
+
+	var outcome := RPS.Outcome.WIN if skill_handler.force_win_this_exchange \
+		else RPS.resolve(defense_move, enemy_move)
 
 	_log_exchange("You (defense)", defense_move, enemy.display_name, enemy_move)
-	RunState.player_move_history.append(defense_move)
+	if skill_handler.force_win_this_exchange:
+		_log("  ✨ [color=purple][Blade Dance][/color] Exchange auto-blocked!")
 
 	match outcome:
 		RPS.Outcome.WIN:
 			_log("  → [color=green]Blocked![/color] You deflect %s's attack." % enemy.display_name)
+			skill_handler.on_player_wins_exchange(false)
 		RPS.Outcome.LOSS:
-			var dmg := enemy.base_damage
+			# ── Skill hook: modify damage taken ──
+			var dmg := skill_handler.modify_damage_taken(enemy.base_damage)
 			_player_hp = maxi(0, _player_hp - dmg)
 			player_display.update_hp(_player_hp)
-			_log("  → [color=red]Hit![/color] %s deals %d damage to you." % [enemy.display_name, dmg])
+			_log("  → [color=red]Hit![/color] %s deals %d damage." % [enemy.display_name, dmg])
+			skill_handler.on_player_loses_exchange(false)
 		RPS.Outcome.TIE:
 			_log("  → [color=yellow]Tie![/color] No damage.")
+			skill_handler.on_tie_exchange()
 
 	await get_tree().create_timer(0.7).timeout
 	if _check_battle_over():
@@ -193,24 +237,21 @@ func _resolve_player_defense(defense_move: int) -> void:
 
 func _choose_enemy_move(enemy: EnemyData) -> int:
 	match enemy.ai_type:
-		0:  # Random
-			return RPS.Move.values().pick_random()
-		1:  # Weighted
-			return _weighted_random(enemy.ai_weights)
-		2:  # Pattern
+		0:  return RPS.Move.values().pick_random()
+		1:  return _weighted_random(enemy.ai_weights)
+		2:
 			if enemy.ai_pattern.is_empty():
 				return RPS.Move.values().pick_random()
 			return enemy.ai_pattern[RunState.player_move_history.size() % enemy.ai_pattern.size()]
-		3:  # Adaptive
-			return _adaptive_choice()
-		4:  # Mirror
+		3:  return _adaptive_choice()
+		4:
 			if RunState.player_move_history.is_empty():
 				return RPS.Move.values().pick_random()
 			return RunState.player_move_history[-1]
 	return RPS.Move.values().pick_random()
 
 func _weighted_random(weights: Dictionary) -> int:
-	var keys := ["rock", "paper", "scissors"]
+	var keys: Array[String] = ["rock", "paper", "scissors"]
 	var move_map: Dictionary = {"rock": RPS.Move.ROCK, "paper": RPS.Move.PAPER, "scissors": RPS.Move.SCISSORS}
 	var total := 0.0
 	for k: String in keys:
@@ -263,6 +304,7 @@ func _end_battle(player_won: bool) -> void:
 	_battle_won = player_won
 	_current_phase = Phase.DONE
 	RunState.current_hp = _player_hp
+	skill_handler.on_battle_end()
 	if player_won:
 		result_label.text = "Victory!"
 		_log("\n[color=green][b]All enemies defeated![/b][/color]")
@@ -276,6 +318,9 @@ func _on_continue_pressed() -> void:
 		GameManager.battle_won()
 	else:
 		GameManager.battle_lost()
+
+func _on_skill_triggered(skill_name: String, message: String) -> void:
+	_log("  ✦ [color=#c8a0ff][b]%s[/b][/color]: %s" % [skill_name, message])
 
 func _log_exchange(attacker: String, a_move: int, defender: String, d_move: int) -> void:
 	_log("[b]%s[/b] plays %s %s  vs  [b]%s[/b] plays %s %s" % [

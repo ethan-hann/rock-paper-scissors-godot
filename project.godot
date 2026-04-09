@@ -20,6 +20,8 @@ config/run/main_scene="res://scenes/main_menu/main_menu.tscn"
 
 RPS="*res://autoloads/rps_globals.gd"
 RunState="*res://autoloads/run_state.gd"
+MetaProgression="*res://autoloads/meta_progression.gd"
+SkillRegistry="*res://autoloads/skill_registry.gd"
 EnemyRegistry="*res://autoloads/enemy_registry.gd"
 GameManager="*res://autoloads/game_manager.gd"
 

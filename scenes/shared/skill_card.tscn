@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://sk1llc4rd001"]
+
+[ext_resource type="Script" uid="uid://o4ee38wp0mtx" path="res://scenes/shared/skill_card.gd" id="1_skcrd"]
+
+[node name="SkillCard" type="PanelContainer" unique_id=1140448542]
+custom_minimum_size = Vector2(190, 220)
+script = ExtResource("1_skcrd")
+
+[node name="Content" type="VBoxContainer" parent="." unique_id=1831655516]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NameLabel" type="Label" parent="Content" unique_id=1245648467]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Skill Name"
+horizontal_alignment = 1
+
+[node name="RarityLabel" type="Label" parent="Content" unique_id=1952887445]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Common"
+horizontal_alignment = 1
+
+[node name="Divider" type="HSeparator" parent="Content" unique_id=1281164067]
+layout_mode = 2
+
+[node name="DescriptionLabel" type="Label" parent="Content" unique_id=2055215281]
+custom_minimum_size = Vector2(1, 1)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 13
+text = "Skill description goes here."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="ChooseButton" type="Button" parent="Content" unique_id=1697453835]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "Choose"

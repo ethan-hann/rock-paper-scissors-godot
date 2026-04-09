@@ -1,0 +1,74 @@
+[
+  {
+    "id": "iron_fist",
+    "display_name": "Iron Fist",
+    "description": "Your Rock attacks deal +4 bonus damage.",
+    "rarity": 0,
+    "effect_key": "iron_fist",
+    "parameters": { "bonus_damage": 4 },
+    "locked_by_default": false
+  },
+  {
+    "id": "scissor_strike",
+    "display_name": "Scissor Strike",
+    "description": "Your Scissors attacks deal +5 bonus damage.",
+    "rarity": 0,
+    "effect_key": "scissor_strike",
+    "parameters": { "bonus_damage": 5 },
+    "locked_by_default": false
+  },
+  {
+    "id": "stone_skin",
+    "display_name": "Stone Skin",
+    "description": "Reduce all damage you take by 2 (minimum 1).",
+    "rarity": 0,
+    "effect_key": "stone_skin",
+    "parameters": { "reduction": 2 },
+    "locked_by_default": false
+  },
+  {
+    "id": "paper_shield",
+    "display_name": "Paper Shield",
+    "description": "The first time you take damage each battle, reduce it by 4.",
+    "rarity": 1,
+    "effect_key": "paper_shield",
+    "parameters": { "reduction": 4 },
+    "locked_by_default": false
+  },
+  {
+    "id": "momentum",
+    "display_name": "Momentum",
+    "description": "Win 2 exchanges in a row to empower your next attack with +8 bonus damage.",
+    "rarity": 1,
+    "effect_key": "momentum",
+    "parameters": { "required_streak": 2, "bonus_damage": 8 },
+    "locked_by_default": false
+  },
+  {
+    "id": "counterflow",
+    "display_name": "Counterflow",
+    "description": "After successfully blocking an enemy attack, your next offensive attack deals +6 bonus damage.",
+    "rarity": 1,
+    "effect_key": "counterflow",
+    "parameters": { "bonus_damage": 6 },
+    "locked_by_default": false
+  },
+  {
+    "id": "fortune_turn",
+    "display_name": "Fortune's Turn",
+    "description": "After failing to block an enemy attack, your next offensive attack deals double damage.",
+    "rarity": 2,
+    "effect_key": "fortune_turn",
+    "parameters": {},
+    "locked_by_default": false
+  },
+  {
+    "id": "blade_dance",
+    "display_name": "Blade Dance",
+    "description": "Every 3rd exchange you participate in (attack or defense), your move automatically wins.",
+    "rarity": 2,
+    "effect_key": "blade_dance",
+    "parameters": {},
+    "locked_by_default": false
+  }
+]
