@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://c878ft6jgs5aa"]
+
+[ext_resource type="Script" path="res://scenes/game_over/game_over.gd" id="1_govr1"]
+
+[node name="GameOver" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_govr1")
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.08, 0.08, 0.12, 1)
+
+[node name="Content" type="VBoxContainer" parent="."]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -140.0
+offset_right = 200.0
+offset_bottom = 140.0
+theme_override_constants/separation = 16
+
+[node name="ResultLabel" type="Label" parent="Content"]
+text = "Result"
+theme_override_font_sizes/font_size = 48
+horizontal_alignment = 1
+
+[node name="DetailLabel" type="Label" parent="Content"]
+text = "..."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Spacer" type="Control" parent="Content"]
+custom_minimum_size = Vector2(0, 20)
+
+[node name="RestartButton" type="Button" parent="Content"]
+text = "Try Again"
+custom_minimum_size = Vector2(0, 50)
+theme_override_font_sizes/font_size = 18
+
+[node name="MainMenuButton" type="Button" parent="Content"]
+text = "Main Menu"
+custom_minimum_size = Vector2(0, 40)

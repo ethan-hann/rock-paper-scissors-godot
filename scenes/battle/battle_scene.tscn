@@ -1,0 +1,75 @@
+[gd_scene load_steps=4 format=3 uid="uid://b4ttl3sc3n301"]
+
+[ext_resource type="Script" path="res://scenes/battle/battle_scene.gd" id="1_bscn1"]
+[ext_resource type="PackedScene" path="res://scenes/battle/components/combatant_display.tscn" id="2_cdsp1"]
+[ext_resource type="PackedScene" path="res://scenes/battle/components/move_selector.tscn" id="4_msel1"]
+
+[node name="BattleScene" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_bscn1")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+theme_override_constants/separation = 14
+
+[node name="TopRow" type="HBoxContainer" parent="Layout"]
+theme_override_constants/separation = 20
+
+[node name="PlayerDisplay" parent="Layout/TopRow" instance=ExtResource("2_cdsp1")]
+size_flags_horizontal = 3
+
+[node name="DiceLabel" type="Label" parent="Layout/TopRow"]
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 2
+
+[node name="EnemiesArea" type="HBoxContainer" parent="Layout"]
+theme_override_constants/separation = 20
+
+[node name="StatusLabel" type="Label" parent="Layout"]
+text = "..."
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+
+[node name="TargetSelector" type="HBoxContainer" parent="Layout"]
+theme_override_constants/separation = 12
+visible = false
+
+[node name="MoveSelector" parent="Layout" instance=ExtResource("4_msel1")]
+
+[node name="BattleLog" type="RichTextLabel" parent="Layout"]
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 140)
+bbcode_enabled = true
+scroll_following = true
+
+[node name="ResultOverlay" type="Panel" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+
+[node name="Content" type="VBoxContainer" parent="ResultOverlay"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -80.0
+offset_right = 140.0
+offset_bottom = 80.0
+theme_override_constants/separation = 16
+
+[node name="ResultLabel" type="Label" parent="ResultOverlay/Content"]
+text = "Result"
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+
+[node name="ContinueButton" type="Button" parent="ResultOverlay/Content"]
+text = "Continue"
+custom_minimum_size = Vector2(0, 40)

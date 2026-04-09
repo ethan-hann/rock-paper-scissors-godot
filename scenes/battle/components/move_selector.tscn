@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://3oh1wucm8eiq"]
+
+[ext_resource type="Script" path="res://scenes/battle/components/move_selector.gd" id="1_msel1"]
+
+[node name="MoveSelector" type="HBoxContainer"]
+script = ExtResource("1_msel1")
+theme_override_constants/separation = 12
+
+[node name="RockButton" type="Button" parent="."]
+custom_minimum_size = Vector2(110, 60)
+size_flags_horizontal = 3
+text = "✊  Rock"
+
+[node name="PaperButton" type="Button" parent="."]
+custom_minimum_size = Vector2(110, 60)
+size_flags_horizontal = 3
+text = "✋  Paper"
+
+[node name="ScissorsButton" type="Button" parent="."]
+custom_minimum_size = Vector2(110, 60)
+size_flags_horizontal = 3
+text = "✌  Scissors"

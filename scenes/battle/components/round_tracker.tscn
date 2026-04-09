@@ -1,0 +1,18 @@
+[gd_scene format=3 uid="uid://cj750mgccbayy"]
+
+[ext_resource type="Script" path="res://scenes/battle/components/round_tracker.gd" id="1_rtrk1"]
+
+[node name="RoundTracker" type="HBoxContainer"]
+script = ExtResource("1_rtrk1")
+theme_override_constants/separation = 20
+
+[node name="PlayerWins" type="Label" parent="."]
+text = "You: 0 / 2"
+theme_override_font_sizes/font_size = 16
+
+[node name="Separator" type="Label" parent="."]
+text = "     |     "
+
+[node name="EnemyWins" type="Label" parent="."]
+text = "Enemy: 0 / 2"
+theme_override_font_sizes/font_size = 16

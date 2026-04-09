@@ -1,0 +1,4 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+/original_python_code
