@@ -309,6 +309,15 @@ func _resolve_player_defense(defense_move: int) -> void:
 			_log("  → [color=green]Blocked![/color] You deflect %s's attack." % enemy.display_name)
 			skill_handler.on_player_wins_exchange(false)
 
+			# Riposte: deal counter-damage to the attacker on a successful block
+			var block_dmg := skill_handler.get_block_damage()
+			if block_dmg > 0:
+				_enemy_hps[enemy_idx] = maxi(0, _enemy_hps[enemy_idx] - block_dmg)
+				_enemy_displays[enemy_idx].update_hp(_enemy_hps[enemy_idx])
+				_log("  → [color=yellow]Counter![/color] %s takes %d damage." % [enemy.display_name, block_dmg])
+				if _enemy_hps[enemy_idx] == 0:
+					_log("  → [color=green]%s is defeated![/color]" % enemy.display_name)
+
 		RPS.Outcome.LOSS:
 			var dmg := skill_handler.modify_damage_taken(enemy.base_damage)
 			_player_hp = maxi(0, _player_hp - dmg)

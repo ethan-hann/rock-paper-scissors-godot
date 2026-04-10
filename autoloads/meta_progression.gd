@@ -25,7 +25,7 @@ var total_runs: int = 0
 var legendary_skill_ids: Array[String] = []
 
 ## Bump this whenever the skill pool expands so older saves get re-unlocked.
-const TESTING_SKILL_COUNT := 23
+const TESTING_SKILL_COUNT := 24
 
 func _ready() -> void:
 	pass  # No auto-load — slot selection happens on the save-slot screen.
@@ -235,7 +235,7 @@ func _unlock_all_for_testing() -> void:
 		# Non-stackable — Uncommon
 		"momentum", "counterflow", "predator", "eye_for_eye", "parting_blow",
 		# Non-stackable — Rare
-		"fortune_turn", "blade_dance", "gamblers_favor", "comeback_kid", "echo_strike",
+		"fortune_turn", "blade_dance", "gamblers_favor", "comeback_kid", "echo_strike", "riposte",
 		# Legendary (offered as 4th card in skill selection; stored in legendary_skill_ids when taken)
 		"undying_will", "blood_pact", "second_wind", "titans_grip", "eternal_momentum",
 	]

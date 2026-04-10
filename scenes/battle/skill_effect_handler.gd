@@ -16,6 +16,7 @@ var _block_bonus_active: bool = false
 var _comeback_threshold_crossed: bool = false
 var _comeback_attacks_remaining: int = 0
 var _second_wind_used: bool = false
+var _titans_grip_halve_next: bool = false
 
 ## Set by on_exchange_start() — battle_scene checks this to skip RPS resolution.
 var force_win_this_exchange: bool = false
@@ -37,6 +38,7 @@ func _reset_battle_state() -> void:
 	_comeback_threshold_crossed = false
 	_comeback_attacks_remaining = 0
 	_second_wind_used = false
+	_titans_grip_halve_next = false
 	force_win_this_exchange = false
 	should_repeat_attack = false
 
@@ -134,6 +136,14 @@ func modify_attack_damage(base_damage: int, player_move: int) -> int:
 				var label := "Scissor Strike ×%d" % sc_count if sc_count > 1 else "Scissor Strike"
 				skill_triggered.emit(label, "+%d Scissors damage!" % bonus)
 
+	# --- Legendary move-specific bonuses ---
+	if player_move == RPS.Move.ROCK:
+		var tg := _get_first("titans_grip")
+		if tg:
+			var bonus: int = tg.parameters.get("bonus_damage", 5)
+			dmg += bonus
+			skill_triggered.emit(tg.display_name, "+%d Rock damage!" % bonus)
+
 	# --- Non-stackable conditional bonuses ---
 	var momentum := _get_first("momentum")
 	if momentum:
@@ -170,6 +180,14 @@ func modify_attack_damage(base_damage: int, player_move: int) -> int:
 func modify_damage_taken(base_damage: int) -> int:
 	var dmg := base_damage
 
+	# Titan's Grip: when Rock loses, incoming damage is halved (set by modify_player_outcome).
+	if _titans_grip_halve_next:
+		_titans_grip_halve_next = false
+		dmg = maxi(1, dmg / 2)
+		var tg := _get_first("titans_grip")
+		if tg:
+			skill_triggered.emit(tg.display_name, "Rock endures — damage halved to %d!" % dmg)
+
 	# Glass Cannon: +penalty per stack (silently applied — penalty was shown at equip)
 	var gc_penalty := _count_skill("glass_cannon") * 2
 	dmg += gc_penalty
@@ -201,6 +219,16 @@ func modify_damage_taken(base_damage: int) -> int:
 			else:
 				skill_triggered.emit(s.display_name, "Barrier absorbed %d! %d damage passes through." % [absorbed, dmg])
 
+	return dmg
+
+## Returns counter-damage dealt to the attacker when the player successfully blocks (Riposte).
+## 0 if skill not held.
+func get_block_damage() -> int:
+	var s := _get_first("riposte")
+	if s == null:
+		return 0
+	var dmg: int = s.parameters.get("counter_damage", 5)
+	skill_triggered.emit(s.display_name, "Riposte! Dealt %d counter-damage!" % dmg)
 	return dmg
 
 ## Returns counter-damage dealt back to the attacker when the player fails a block (Eye for an Eye).
@@ -318,14 +346,14 @@ func try_death_save() -> int:
 	return 1
 
 ## Apply legendary outcome modifications before the match statement in battle_scene.
-## Currently handles Titan's Grip: Rock losses become Ties.
-## Returns the (possibly modified) outcome.
+## Handles Titan's Grip: Rock losses still count as losses but incoming damage is halved.
+## The flag is consumed by modify_damage_taken on the same exchange.
+## Returns the outcome unchanged (Titan's Grip no longer creates Ties).
 func modify_player_outcome(player_move: int, outcome: int) -> int:
 	if outcome == RPS.Outcome.LOSS and player_move == RPS.Move.ROCK:
 		var s := _get_first("titans_grip")
 		if s:
-			skill_triggered.emit(s.display_name, "Rock cannot lose — Loss converted to Tie!")
-			return RPS.Outcome.TIE
+			_titans_grip_halve_next = true
 	return outcome
 
 func on_battle_end() -> void:

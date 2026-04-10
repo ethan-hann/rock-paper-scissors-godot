@@ -30,14 +30,14 @@ func go_to_save_slot() -> void:
 func start_new_run() -> void:
 	RunState.reset_for_new_run()
 	RunState.apply_legendary_run_effects()   # injects legendaries + applies stat changes
-	_go_to_battle([EnemyRegistry.get_random_enemy()])
+	_go_to_battle([EnemyRegistry.get_enemy_for_floor(RunState.floor_number)])
 
 ## Restore a previously saved mid-run state and jump back into battle.
 func continue_run() -> void:
 	# Run state (HP, floor, skills) was already loaded by MetaProgression.load_run_state()
 	# before this is called. Delete the save now — it lives in memory from here on.
 	MetaProgression.delete_run_save(MetaProgression.active_slot)
-	_go_to_battle([EnemyRegistry.get_random_enemy()])
+	_go_to_battle([EnemyRegistry.get_enemy_for_floor(RunState.floor_number)])
 
 func _go_to_battle(enemies: Array[EnemyData]) -> void:
 	# Duplicate each enemy so modifiers don't persist on the shared registry object.
@@ -68,7 +68,7 @@ func battle_won() -> void:
 		get_tree().change_scene_to_file(SKILL_SELECT_SCENE)
 
 func after_skill_select() -> void:
-	_go_to_battle([EnemyRegistry.get_random_enemy()])
+	_go_to_battle([EnemyRegistry.get_enemy_for_floor(RunState.floor_number)])
 
 func battle_lost() -> void:
 	last_victory = false

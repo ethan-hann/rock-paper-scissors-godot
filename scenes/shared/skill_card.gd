@@ -8,11 +8,12 @@ signal card_selected(skill: SkillData)
 @onready var description_label: Label = $Content/DescriptionLabel
 @onready var choose_button: Button = $Content/ChooseButton
 
-const RARITY_NAMES: Array[String] = ["Common", "Uncommon", "Rare"]
+const RARITY_NAMES: Array[String] = ["Common", "Uncommon", "Rare", "Legendary"]
 const RARITY_COLORS: Array[Color] = [
-	Color(0.75, 0.75, 0.75),   # Common  — grey
-	Color(0.20, 0.85, 0.85),   # Uncommon — teal
-	Color(1.00, 0.80, 0.10),   # Rare    — gold
+	Color("#c7c9c6"),   # Common  — grey
+	Color("#1fb505"),   # Uncommon — teal
+	Color("#cb17f2"),          # Rare    — purple
+	Color("#f2ba17")           # Legendary - gold
 ]
 
 var _skill: SkillData = null

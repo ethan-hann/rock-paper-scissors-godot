@@ -198,6 +198,17 @@
 	"max_stacks": 1
   },
   {
+	"id": "riposte",
+	"display_name": "Riposte",
+	"description": "When you successfully block an enemy attack, deal 5 damage to the attacker.",
+	"rarity": 2,
+	"effect_key": "riposte",
+	"parameters": { "counter_damage": 5 },
+	"locked_by_default": false,
+	"stackable": false,
+	"max_stacks": 1
+  },
+  {
 	"id": "undying_will",
 	"display_name": "Undying Will",
 	"description": "Once per run, if a hit would reduce your HP to 0, survive with 1 HP instead. This boon is permanent for this save slot.",
@@ -233,10 +244,10 @@
   {
 	"id": "titans_grip",
 	"display_name": "Titan's Grip",
-	"description": "Your Rock can never lose — any Loss while playing Rock is converted to a Tie instead. This boon is permanent for this save slot.",
+	"description": "Rock attacks deal +5 bonus damage. When Rock loses, you take only half damage from that hit. This boon is permanent for this save slot.",
 	"rarity": 3,
 	"effect_key": "titans_grip",
-	"parameters": {},
+	"parameters": { "bonus_damage": 5 },
 	"locked_by_default": false,
 	"stackable": false,
 	"max_stacks": 1

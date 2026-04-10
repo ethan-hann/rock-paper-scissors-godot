@@ -1,19 +1,21 @@
 [gd_scene format=3 uid="uid://comb4t4ntd1sp"]
 
-[ext_resource type="Script" path="res://scenes/battle/components/combatant_display.gd" id="1_cdsp1"]
+[ext_resource type="Script" uid="uid://cxxeiam384cf6" path="res://scenes/battle/components/combatant_display.gd" id="1_cdsp1"]
 
-[node name="CombatantDisplay" type="VBoxContainer"]
+[node name="CombatantDisplay" type="VBoxContainer" unique_id=12876071]
 custom_minimum_size = Vector2(160, 0)
 script = ExtResource("1_cdsp1")
 
-[node name="NameLabel" type="Label" parent="."]
-text = "Name"
+[node name="NameLabel" type="Label" parent="." unique_id=530739250]
+layout_mode = 2
 theme_override_font_sizes/font_size = 16
+text = "Name"
 
-[node name="HpLabel" type="Label" parent="."]
+[node name="HpLabel" type="Label" parent="." unique_id=858828217]
+layout_mode = 2
 text = "HP: 30 / 30"
 
-[node name="HpBar" type="ProgressBar" parent="."]
+[node name="HpBar" type="ProgressBar" parent="." unique_id=1715201460]
 custom_minimum_size = Vector2(160, 20)
-max_value = 100.0
+layout_mode = 2
 value = 100.0
